@@ -27,8 +27,12 @@ const getWallet = (req, res) => {
 //Creating GET Router to fetch all the users details from the MySQL Database
 const getWalletBySessionID = (req, res) =>{
     WalletModel.getWalletBySessionID(req.params.sessionId, (err, rows, fields) => {
-        if (!err && rows[0])
+        console.log("getwalletbysessionid....")
+        console.log(rows);
+        if (!err && rows[0]){
+            delete rows[0]['secretKey'];
             res.send(rows);
+        }
         else
             res.status(500).send("Error cannot find the row");
     })
@@ -38,7 +42,7 @@ const getWalletBySessionID = (req, res) =>{
 const getAdressBySessionID = (req, res)=>{
     Wallet.getWalletBySessionID(req.params.sessionId, (err, rows, fields) => {
         if (!err && rows[0])
-            res.send(rows);
+            res.send({"address" : rows[0].address});
         else
             console.log(err);
         res.status(500).send("Error cannot find the row");
@@ -59,7 +63,7 @@ const createWallet = (req, res)=>{
             res.status(200).send({ msg: "Success" });
         else if(err.status==422){
             console.log("Already Exists..");
-            res.status(422).send({msg : `${req.params.sessionId} Already Exist..`});
+            res.status(422).send({msg : `Session(${req.params.sessionId}) Already Exist..`});
         }
         else {
             console.log(err);
@@ -131,8 +135,8 @@ const getBalance = (req, res) => {
 }
 
 router.get('/', getWallet)
-router.get('/detail/:sessionId', getWalletBySessionID)
-router.get('/publickey/:sessionId', getAdressBySessionID)
+router.get('/:sessionId', getWalletBySessionID)
+router.get('/getAddress/:sessionId', getAdressBySessionID)
 router.post('/create/:sessionId', createWallet)
 router.get('/transfer/:amount/:from/:to', transfer)
 router.get('/balance/:sessionId', getBalance)
