@@ -51,12 +51,16 @@ const getAdressBySessionID = (req, res)=>{
 */
 //Router to get specific content account creation 
 const createWallet = (req, res)=>{
-    let entropy = "hello";
+    let entropy = "HiveBSCEtheremNET";
     let new_account = web3.eth.accounts.create([entropy]);
-
+    console.log("sessionId= ", req.params.sessionId)
     Wallet.createWallet(new_account, req.params.sessionId, (err, rows, fields) => {
         if (!err)
             res.status(200).send({ msg: "Success" });
+        else if(err.status==422){
+            console.log("Already Exists..");
+            res.status(422).send({msg : `${req.params.sessionId} Already Exist..`});
+        }
         else {
             console.log(err);
             res.status(500).send({ msg: "Error" });
@@ -127,10 +131,10 @@ const getBalance = (req, res) => {
 }
 
 router.get('/', getWallet)
-router.get('/detail/:id', getWalletBySessionID)
-router.get('/publickey/:id', getAdressBySessionID)
-router.post('/create/:content_name', createWallet)
+router.get('/detail/:sessionId', getWalletBySessionID)
+router.get('/publickey/:sessionId', getAdressBySessionID)
+router.post('/create/:sessionId', createWallet)
 router.get('/transfer/:amount/:from/:to', transfer)
-router.get('/balance/:id', getBalance)
+router.get('/balance/:sessionId', getBalance)
 
 module.exports = router;
