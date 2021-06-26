@@ -1,7 +1,6 @@
 const express = require('express');
-const Wallet = require('../models/wallet.model');
 const router = express.Router();
-const WalletModel = require('../models/wallet.model');
+const SessionModel = require('../models/session.model');
 
 var Web3 = require('web3');
 var Accounts = require('web3-eth-accounts');
@@ -16,7 +15,7 @@ var contract = new web3.eth.Contract(EthToken, ethereum_address);
 
 //Creating GET Router to fetch all the users details from the MySQL Database
 const getWallet = (req, res) => {
-    WalletModel.getWallet((err, rows, fields) => {
+    SessionModel.getWallet((err, rows, fields) => {
         if (!err)
             res.send(rows);
         else
@@ -26,7 +25,7 @@ const getWallet = (req, res) => {
 
 //Creating GET Router to fetch all the users details from the MySQL Database
 const getWalletBySessionID = (req, res) =>{
-    WalletModel.getWalletBySessionID(req.params.sessionId, (err, rows, fields) => {
+    SessionModel.getWalletBySessionID(req.params.sessionId, (err, rows, fields) => {
         console.log("getwalletbysessionid....")
         console.log(rows);
         if (!err && rows[0]){
@@ -40,7 +39,7 @@ const getWalletBySessionID = (req, res) =>{
 
 //Router to GET specific users public_key from user id the MySQL database
 const getAdressBySessionID = (req, res)=>{
-    Wallet.getWalletBySessionID(req.params.sessionId, (err, rows, fields) => {
+    SessionModel.getWalletBySessionID(req.params.sessionId, (err, rows, fields) => {
         if (!err && rows[0])
             res.send({"address" : rows[0].address});
         else
@@ -58,7 +57,7 @@ const createWallet = (req, res)=>{
     let entropy = "HiveBSCEtheremNET";
     let new_account = web3.eth.accounts.create([entropy]);
     console.log("sessionId= ", req.params.sessionId)
-    Wallet.createWallet(new_account, req.params.sessionId, (err, rows, fields) => {
+    SessionModel.createWallet(new_account, req.params.sessionId, (err, rows, fields) => {
         if (!err)
             res.status(200).send({ msg: "Success" });
         else if(err.status==422){
@@ -76,7 +75,7 @@ const createWallet = (req, res)=>{
 //Router GET request it transfers the amount of tokens from one address to other
 const transfer = (req, res) => {
     var amount = req.params.amount;
-    WalletModel.getWalletBySessionID(req.params.from, (err, rows, fields) => {
+    SessionModel.getWalletBySessionID(req.params.from, (err, rows, fields) => {
         if (!err && rows[0]) {
             senders_private_key = String(rows[0].secretKey);
             var sender_account = web3.eth.accounts.privateKeyToAccount(senders_private_key);
@@ -121,7 +120,7 @@ const transfer = (req, res) => {
 //Router GET the content balance
 const getBalance = (req, res) => {
     var sessionId = req.params.sessionId;
-    WalletModel.getWalletBySessionID( sessionId, async (err, rows, fields) => {
+    SessionModel.getWalletBySessionID( sessionId, async (err, rows, fields) => {
         if (!err && rows[0]) {
             address = rows[0].address;
             let balance = await contract.methods.balanceOf(address).call();
@@ -134,11 +133,11 @@ const getBalance = (req, res) => {
     });
 }
 
-router.get('/', getWallet)
-router.get('/:sessionId', getWalletBySessionID)
-router.get('/getAddress/:sessionId', getAdressBySessionID)
-router.post('/create/:sessionId', createWallet)
-router.get('/transfer/:amount/:from/:to', transfer)
-router.get('/balance/:sessionId', getBalance)
+router.get('/wallet/', getWallet)
+router.get('/wallet/:sessionId', getWalletBySessionID)
+router.get('/wallet/getAddress/:sessionId', getAdressBySessionID)
+router.post('/wallet/create/:sessionId', createWallet)
+router.get('/wallet/transfer/:amount/:from/:to', transfer)
+router.get('/wallet/balance/:sessionId', getBalance)
 
 module.exports = router;
