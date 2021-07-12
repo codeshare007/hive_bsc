@@ -6,8 +6,9 @@ const mysql = require('./db');
  * At W3 Etherem account, publicKey => address
  */
 const Wallet = {}
-Wallet.getWallet = (callback) => {
-    mysql.query('SELECT id, userId, address FROM users', (err, rows, fields) => {
+Wallet.getWallet = (page, records, callback) => {
+    let limit = ` LIMIT ${(page-1)*records}, ${records}`;
+    mysql.query('SELECT id, userId, address FROM users'+limit, (err, rows, fields) => {
         callback(err, rows, fields);
     });
 }
