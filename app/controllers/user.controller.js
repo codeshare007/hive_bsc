@@ -11,23 +11,61 @@ var accounts = new Accounts('https://data-seed-prebsc-1-s1.binance.org:8545');
 var ethereum_address = "0x8BaBbB98678facC7342735486C851ABD7A0d17Ca";
 // var ethereum_address = "0xd66c6b4f0be8ce5b39d52e0fd1344c389929b378";
 
+const entropy = "HiveBSCEtheremNET";
 var contract = new web3.eth.Contract(EthToken, ethereum_address);
 
 //Creating GET Router to fetch all the users details from the MySQL Database
 const getWallet = (req, res) => {
-    let page = req.params.page;
-    let records = req.params.records;
-    UserModel.getWallet(page, records, (err, rows, fields) => {
+    console.log(req.query);
+    let page = req.query.page;
+    let records = req.query.records;
+    console.log(page, records)
+    UserModel.getWallet(page, records, (err, rows) => {
         if (!err)
             res.send(rows);
         else
             res.status(500).send("Error cannot get the row");
     })
 }
-
+//Fetch users details including address - if not have address, create new one
+const getUsersWallet = (req, res) => {
+    console.log("GetUsers Wallet.....");
+    console.log("params:", req.body)
+    try{
+        let users = req.body.users;
+        var result = [];
+        for(var user of users){
+            console.log(user);
+            UserModel.getWalletByUserID(user, (err, rows) => {
+                if (!err && rows[0]){
+                    console.log("1...")
+                    delete rows[0]['secretKey'];
+                    result.push(rows[0]);
+                }
+                else{
+                    console.log("2....")
+                    var new_account = web3.eth.accounts.create([entropy]);
+                    UserModel.createWallet(new_account, user, (err, rows) => {
+                        if (!err){
+                            result.push({userId : user, address : new_account.address});
+                        }
+                        else {
+                            console.log(err);
+                            res.status(500).send({ msg: "Error" });
+                        }
+                    });
+                }
+            })
+        }
+    }catch(e){
+        res.send("can't parse Request...");
+    }
+    console.log(result)
+    res.send(result);
+}
 //Creating GET Router to fetch all the users details from the MySQL Database
 const getWalletByUserID = (req, res) =>{
-    UserModel.getWalletByUserID(req.params.userId, (err, rows, fields) => {
+    UserModel.getWalletByUserID(req.params.userId, (err, rows) => {
         console.log("getWalletByUserID....")
         console.log(rows);
         if (!err && rows[0]){
@@ -41,7 +79,7 @@ const getWalletByUserID = (req, res) =>{
 
 //Router to GET specific users public_key from user id the MySQL database
 const getAddressByUserID = (req, res)=>{
-    UserModel.getWalletByUserID(req.params.userId, (err, rows, fields) => {
+    UserModel.getWalletByUserID(req.params.userId, (err, rows) => {
         if (!err && rows[0])
             res.send({"address" : rows[0].address});
         else
@@ -56,10 +94,9 @@ const getAddressByUserID = (req, res)=>{
 */
 //Router to get specific content account creation 
 const createWallet = (req, res)=>{
-    let entropy = "HiveBSCEtheremNET";
     let new_account = web3.eth.accounts.create([entropy]);
     console.log("userId= ", req.params.userId)
-    UserModel.createWallet(new_account, req.params.userId, (err, rows, fields) => {
+    UserModel.createWallet(new_account, req.params.userId, (err, rows) => {
         if (!err)
             res.status(200).send({ msg: "Success" });
         else if(err.status==422){
@@ -77,7 +114,7 @@ const createWallet = (req, res)=>{
 //Router GET request it transfers the amount of tokens from one address to other
 const transfer = (req, res) => {
     var amount = req.params.amount;
-    UserModel.getWalletByUserID(req.params.from, (err, rows, fields) => {
+    UserModel.getWalletByUserID(req.params.from, (err, rows) => {
         if (!err && rows[0]) {
             senders_private_key = String(rows[0].secretKey);
             var sender_account = web3.eth.accounts.privateKeyToAccount(senders_private_key);
@@ -122,7 +159,7 @@ const transfer = (req, res) => {
 //Router GET the content balance
 const getBalance = (req, res) => {
     var userId = req.params.userId;
-    UserModel.getWalletByUserID( userId, async (err, rows, fields) => {
+    UserModel.getWalletByUserID( userId, async (err, rows) => {
         if (!err && rows[0]) {
             address = rows[0].address;
             let balance = await contract.methods.balanceOf(address).call();
@@ -136,6 +173,7 @@ const getBalance = (req, res) => {
 }
 
 router.get('/wallet/', getWallet)
+router.post('/wallet/getUsersWallet', getUsersWallet)
 router.get('/wallet/:userId', getWalletByUserID)
 router.get('/wallet/getAddress/:userId', getAddressByUserID)
 router.post('/wallet/create/:userId', createWallet)

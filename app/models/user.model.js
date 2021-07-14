@@ -1,4 +1,4 @@
-const mysql = require('./db');
+const mysql = require('./sync-db');
 
 /**
  * @author Fury
@@ -8,31 +8,40 @@ const mysql = require('./db');
 const Wallet = {}
 Wallet.getWallet = (page, records, callback) => {
     let limit = ` LIMIT ${(page-1)*records}, ${records}`;
-    mysql.query('SELECT id, userId, address FROM users'+limit, (err, rows, fields) => {
-        callback(err, rows, fields);
-    });
+    var result;
+    try{
+        result = mysql.query('SELECT id, userId, address FROM users'+limit)
+    }catch(e){
+        callback(e, []);
+    }
+    callback(null, result);
 }
-Wallet.getWalletByuserId = (userId, callback) =>{
-    mysql.query('SELECT id, userId, address, secretKey FROM users WHERE userId = ?', [userId], (err, rows, fields) => {
-        callback(err, rows, fields);
-    })
+Wallet.getWalletByUserID = (userId, callback) =>{
+    var result;
+    try{
+        result = mysql.query('SELECT id, userId, address, secretKey FROM users WHERE userId = '+userId)
+    }catch(e){
+        callback(e, []);
+    }
+    callback(null, result);
 }
 Wallet.createWallet = (new_account, userId, callback) => {
     var sql = "SELECT COUNT(*) as count FROM users WHERE userId="+userId;
-    mysql.query(sql, (err, rows, fields)=>{
+    var result;
+    try{
+        result = mysql.query(sql)
         console.log("Checking...")
-        if(err)
-            callback(err, rows, fields);
-        if(rows[0].count>0){
-            callback({status : 422}, rows, fields);
+        if(result[0].count>0){
+            callback({status : 422}, result);
             return;
         }
         console.log("inserting...")
         sql = "INSERT INTO users ( userId, address, secretKey ) VALUES ( ?, ?, ? )";
-        mysql.query(sql, [userId, new_account.address, new_account.privateKey], (err, rows, fields) => {
-            callback(err, rows, fields);
-        });
-    });
+        result = mysql.query(sql, [userId, new_account.address, new_account.privateKey]);
+        callback(null, result);
+    }catch(e){
+        callback(e, []);
+    }
 }
 
 module.exports = Wallet;
