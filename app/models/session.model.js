@@ -8,7 +8,7 @@ const mysql = require('./async-db');
 const Wallet = {}
 Wallet.getWallet = (page, records, callback) => {
     let limit = ` LIMIT ${(page-1)*records}, ${records}`;
-    mysql.query('SELECT id, sessionId, address FROM sessions'+limit, (err, rows, fields) => {
+    mysql.query('SELECT id, sessionId, address FROM sessions ORDER BY sessionId '+limit, (err, rows, fields) => {
         callback(err, rows, fields);
     });
 }

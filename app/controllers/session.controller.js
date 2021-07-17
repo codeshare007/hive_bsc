@@ -15,8 +15,9 @@ var contract = new web3.eth.Contract(EthToken, ethereum_address);
 
 //Creating GET Router to fetch all the users details from the MySQL Database
 const getWallet = (req, res) => {
-    let page = req.params.page;
-    let records = req.params.records;
+    console.log(req.query);
+    let page = req.query.page;
+    let records = req.query.records;
 
     SessionModel.getWallet(page, records, (err, rows, fields) => {
         if (!err)
