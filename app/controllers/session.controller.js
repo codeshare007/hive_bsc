@@ -11,6 +11,7 @@ var accounts = new Accounts('https://data-seed-prebsc-1-s1.binance.org:8545');
 var ethereum_address = "0x8BaBbB98678facC7342735486C851ABD7A0d17Ca";
 // var ethereum_address = "0xd66c6b4f0be8ce5b39d52e0fd1344c389929b378";
 
+const entropy = "HiveBSCEtheremNET";
 var contract = new web3.eth.Contract(EthToken, ethereum_address);
 
 //Creating GET Router to fetch all the users details from the MySQL Database
@@ -29,12 +30,25 @@ const getWallet = (req, res) => {
 
 //Creating GET Router to fetch all the users details from the MySQL Database
 const getWalletBySessionID = (req, res) =>{
-    SessionModel.getWalletBySessionID(req.params.sessionId, (err, rows, fields) => {
+    const sessionId = req.params.sessionId;
+    SessionModel.getWalletBySessionID(sessionId, (err, rows, fields) => {
         console.log("getwalletbysessionid....")
         console.log(rows);
         if (!err && rows[0]){
             delete rows[0]['secretKey'];
             res.send(rows);
+        }
+        else if(rows.length === 0){
+            var new_account = web3.eth.accounts.create([entropy]);
+            SessionModel.createWallet(new_account, sessionId, (err, rows) => {
+                if (!err){
+                    res.send([{sessionId : sessionId, address : new_account.address}]);
+                }
+                else {
+                    console.log(err);
+                    res.status(500).send({ msg: "Error" });
+                }
+            });
         }
         else
             res.status(500).send("Error cannot find the row");
@@ -58,7 +72,6 @@ const getAdressBySessionID = (req, res)=>{
 */
 //Router to get specific content account creation 
 const createWallet = (req, res)=>{
-    let entropy = "HiveBSCEtheremNET";
     let new_account = web3.eth.accounts.create([entropy]);
     console.log("sessionId= ", req.params.sessionId)
     SessionModel.createWallet(new_account, req.params.sessionId, (err, rows, fields) => {
