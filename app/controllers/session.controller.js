@@ -1,18 +1,7 @@
 const express = require('express');
+const { getWeb3ByRequest, web3Conf } = require('../config/web3.conf');
 const router = express.Router();
 const SessionModel = require('../models/session.model');
-
-var Web3 = require('web3');
-var Accounts = require('web3-eth-accounts');
-var EthToken = require('./abis/Eth.json');
-
-var web3 = new Web3(Web3.givenProvider || 'https://data-seed-prebsc-1-s1.binance.org:8545');
-var accounts = new Accounts('https://data-seed-prebsc-1-s1.binance.org:8545');
-var ethereum_address = "0x8BaBbB98678facC7342735486C851ABD7A0d17Ca";
-// var ethereum_address = "0xd66c6b4f0be8ce5b39d52e0fd1344c389929b378";
-
-const entropy = "HiveBSCEtheremNET";
-var contract = new web3.eth.Contract(EthToken, ethereum_address);
 
 //Creating GET Router to fetch all the users details from the MySQL Database
 const getWallet = (req, res) => {
@@ -29,8 +18,12 @@ const getWallet = (req, res) => {
 }
 
 //Creating GET Router to fetch all the users details from the MySQL Database
-const getWalletBySessionID = (req, res) =>{
-    const sessionId = req.params.sessionId;
+const getWalletBySessionID = (req, res) => {
+    let bnb_test = web3Conf.bnb_test;
+    let web3 = bnb_test.web3;
+    let entropy = bnb_test.entropy;
+    let sessionId = req.params.sessionId;
+
     SessionModel.getWalletBySessionID(sessionId, (err, rows, fields) => {
         console.log("getwalletbysessionid....")
         console.log(rows);
@@ -72,6 +65,10 @@ const getAdressBySessionID = (req, res)=>{
 */
 //Router to get specific content account creation 
 const createWallet = (req, res)=>{
+    let bnb_test = web3Conf.bnb_test;
+    let web3 = bnb_test.web3;
+    let entropy = bnb_test.entropy;
+    
     let new_account = web3.eth.accounts.create([entropy]);
     console.log("sessionId= ", req.params.sessionId)
     SessionModel.createWallet(new_account, req.params.sessionId, (err, rows, fields) => {
@@ -91,6 +88,10 @@ const createWallet = (req, res)=>{
 
 //Router GET request it transfers the amount of tokens from one address to other
 const transfer = (req, res) => {
+    let tmp = getWeb3ByRequest(req);
+    let web3 = tmp.web3;
+    let gas = tmp.gas;
+
     var amount = req.params.amount;
     SessionModel.getWalletBySessionID(req.params.from, (err, rows, fields) => {
         if (!err && rows[0]) {
@@ -107,9 +108,9 @@ const transfer = (req, res) => {
                 // optional if you are invoking say a payable function 
                 value: 0,
                 //gas for transactios
-                gas: 200000,
+                gas: gas,
                 // this encodes the ABI of the method and the arguements
-                data: contract.methods.transfer(reciever_address, BigInt(amount * 10 ** 18)).encodeABI()
+                // data: contract.methods.transfer(reciever_address, BigInt(amount * 10 ** 18)).encodeABI()
             };
             sender_account.signTransaction(tx).then((signedTx) => {
                 const sentTx = web3.eth.sendSignedTransaction(signedTx.raw || signedTx.rawTransaction);
@@ -136,11 +137,13 @@ const transfer = (req, res) => {
 
 //Router GET the content balance
 const getBalance = (req, res) => {
+    let tmp = getWeb3ByRequest(req);
+    let web3 = tmp.web3;
     var sessionId = req.params.sessionId;
     SessionModel.getWalletBySessionID( sessionId, async (err, rows, fields) => {
         if (!err && rows[0]) {
             address = rows[0].address;
-            let balance = await contract.methods.balanceOf(address).call();
+            let balance = await web3.eth.getBalance(address);
             console.log("Content balance is:", balance / 10 ** 18);
             res.send(String(balance / 10 ** 18));
         }
@@ -154,7 +157,7 @@ router.get('/wallet/', getWallet)
 router.get('/wallet/:sessionId', getWalletBySessionID)
 router.get('/wallet/getAddress/:sessionId', getAdressBySessionID)
 router.post('/wallet/create/:sessionId', createWallet)
-router.get('/wallet/transfer/:amount/:from/:to', transfer)
+router.post('/wallet/transfer/:amount/:from/:to', transfer)
 router.get('/wallet/balance/:sessionId', getBalance)
 
 module.exports = router;

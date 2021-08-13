@@ -2,18 +2,6 @@ const express = require('express');
 const router = express.Router();
 const UserModel = require('../models/user.model');
 
-var Web3 = require('web3');
-var Accounts = require('web3-eth-accounts');
-var EthToken = require('./abis/Eth.json');
-
-var web3 = new Web3(Web3.givenProvider || 'https://data-seed-prebsc-1-s1.binance.org:8545');
-var accounts = new Accounts('https://data-seed-prebsc-1-s1.binance.org:8545');
-var ethereum_address = "0x8BaBbB98678facC7342735486C851ABD7A0d17Ca";
-// var ethereum_address = "0xd66c6b4f0be8ce5b39d52e0fd1344c389929b378";
-
-const entropy = "HiveBSCEtheremNET";
-var contract = new web3.eth.Contract(EthToken, ethereum_address);
-
 //Creating GET Router to fetch all the users details from the MySQL Database
 const getWallet = (req, res) => {
     console.log(req.query);
@@ -30,7 +18,10 @@ const getWallet = (req, res) => {
 //Fetch users details including address - if not have address, create new one
 const getUsersWallet = (req, res) => {
     console.log("GetUsers Wallet.....");
-    console.log("params:", req.body)
+
+    let bnb_test = web3Conf.bnb_test;
+    let web3 = bnb_test.web3;
+    let entropy = bnb_test.entropy;
     try{
         let users = req.body.users;
         var result = [];
@@ -94,6 +85,9 @@ const getAddressByUserID = (req, res)=>{
 */
 //Router to get specific content account creation 
 const createWallet = (req, res)=>{
+    let bnb_test = web3Conf.bnb_test;
+    let web3 = bnb_test.web3;
+    let entropy = bnb_test.entropy;
     let new_account = web3.eth.accounts.create([entropy]);
     console.log("userId= ", req.params.userId)
     UserModel.createWallet(new_account, req.params.userId, (err, rows) => {
@@ -113,6 +107,9 @@ const createWallet = (req, res)=>{
 
 //Router GET request it transfers the amount of tokens from one address to other
 const transfer = (req, res) => {
+    let tmp = getWeb3ByRequest(req);
+    let web3 = tmp.web3;
+    let gas = tmp.gas;
     var amount = req.params.amount;
     UserModel.getWalletByUserID(req.params.from, (err, rows) => {
         if (!err && rows[0]) {
@@ -129,9 +126,9 @@ const transfer = (req, res) => {
                 // optional if you are invoking say a payable function 
                 value: 0,
                 //gas for transactios
-                gas: 200000,
+                gas: gas,
                 // this encodes the ABI of the method and the arguements
-                data: contract.methods.transfer(reciever_address, BigInt(amount * 10 ** 18)).encodeABI()
+                // data: contract.methods.transfer(reciever_address, BigInt(amount * 10 ** 18)).encodeABI()
             };
             sender_account.signTransaction(tx).then((signedTx) => {
                 const sentTx = web3.eth.sendSignedTransaction(signedTx.raw || signedTx.rawTransaction);
@@ -158,11 +155,13 @@ const transfer = (req, res) => {
 
 //Router GET the content balance
 const getBalance = (req, res) => {
+    let tmp = getWeb3ByRequest(req);
+    let web3 = tmp.web3;
     var userId = req.params.userId;
     UserModel.getWalletByUserID( userId, async (err, rows) => {
         if (!err && rows[0]) {
             address = rows[0].address;
-            let balance = await contract.methods.balanceOf(address).call();
+            let balance = await web3.eth.getBalance(address);
             console.log("Content balance is:", balance / 10 ** 18);
             res.send(String(balance / 10 ** 18));
         }
@@ -177,7 +176,7 @@ router.post('/wallet/getUsersWallet', getUsersWallet)
 router.get('/wallet/:userId', getWalletByUserID)
 router.get('/wallet/getAddress/:userId', getAddressByUserID)
 router.post('/wallet/create/:userId', createWallet)
-router.get('/wallet/transfer/:amount/:from/:to', transfer)
+router.post('/wallet/transfer/:amount/:from/:to', transfer)
 router.get('/wallet/balance/:userId', getBalance)
 
 module.exports = router;
