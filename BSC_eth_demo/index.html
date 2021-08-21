@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Page</title>
+    <script
+        src="https://code.jquery.com/jquery-3.3.1.min.js"
+        integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+        crossorigin="anonymous">
+    </script>
+
+
+</head>
+<body>
+    <script>
+        function loadTable(){
+            $.get({
+                url: "contents/",
+                success: function(response) {
+                    console.log(response);
+                    tableBody = $('#table-body-id');
+                    tableBody.empty();
+                    response.forEach(element => {
+                        var $id = $("<td>", {id: "foo", "class": "a", text: element.id});
+                        var $name = $("<td>", {id: "foo", "class": "a", text: element.content_name});
+                        var $public = $("<td>", {id: "foo", "class": "a", text: element.public_key});
+                        let $balance = $("<td>", {id: "balance"+element.id , "class": "a"});
+                        let $bnb_balance = $("<td>", {id: "bnb-balance"+element.id , "class": "a"});
+                        let $eth_balance = $("<td>", {id: "eth-balance"+element.id , "class": "a"});
+                        let $eth_test_balance = $("<td>", {id: "eth-test-balance"+element.id , "class": "a"});
+                        
+                        //get bnb-test balance 
+                        $.get({
+                            url: "contents/balance/bnb-test/"+element.id,
+                            success: function (response) {
+                                let $balance = $("<td>", {id: "balance"+element.id , text: response});
+                                // $balance = $("<td>", {id: "foo", "class": "a", text: response});
+                                $("#balance"+element.id).replaceWith($balance);
+                            },
+                            error: function(err){
+                                console.log(err);
+                            }
+                        });
+                        //get bnb-main balance
+                        $.get({
+                            url: "contents/balance/bnb-mainnet/"+element.id,
+                            success: function (response) {
+                                let $balance = $("<td>", {id: "bnb-balance"+element.id , text: response});
+                                // $balance = $("<td>", {id: "foo", "class": "a", text: response});
+                                $("#bnb-balance"+element.id).replaceWith($balance);
+                            },
+                            error: function(err){
+                                console.log(err);
+                            }
+                        });
+                        //get eth-main balance
+                        $.get({
+                            url: "contents/balance/eth-mainnet/"+element.id,
+                            success: function (response) {
+                                let $balance = $("<td>", {id: "eth-balance"+element.id , text: response});
+                                // $balance = $("<td>", {id: "foo", "class": "a", text: response});
+                                $("#eth-balance"+element.id).replaceWith($balance);
+                            },
+                            error: function(err){
+                                console.log(err);
+                            }
+                        });
+ 
+                        //get eth-test balance
+                        $.get({
+                            url: "contents/balance/eth-testnet/"+element.id,
+                            success: function (response) {
+                                let $balance = $("<td>", {id: "eth-test-balance"+element.id , text: response});
+                                // $balance = $("<td>", {id: "foo", "class": "a", text: response});
+                                $("#eth-test-balance"+element.id).replaceWith($balance);
+                            },
+                            error: function(err){
+                                console.log(err);
+                            }
+                        });
+
+                        var $tr = $("<tr>", );
+                        $tr.append($id,$name,$public,$balance,$bnb_balance,$eth_balance,$eth_test_balance);
+                        tableBody.append($tr);
+                    });
+                }
+            });
+
+        }
+
+        $(document).ready(function () {
+            loadTable();
+
+            //transfer test bnb
+            $( "#transfer-form" ).submit(function( event ) {
+                var $amount = $("#transfer-amount").val();
+                var $from = $("#transfer-from").val();
+                var $to = $("#transfer-to").val();
+                
+                $.get({
+                    url: "contents/transfer/"+$amount+"/"+$from+"/"+$to,
+                    success: function(response){
+                        alert("Funds sent",response);
+                        console.log("contents/transfer/"+$amount+"/"+$from+"/"+$to);
+                        loadTable();
+                    },
+                    error: function(err){
+                        alert("Cannot send test BNB error!" + err.msg);
+                    }
+                });
+                event.preventDefault();
+            });
+
+            //transfer main bnb
+            $( "#transfer-bnb-form" ).submit(function( event ) {
+                var $amount = $("#transfer-bnb-amount").val();
+                var $from = $("#transfer-bnb-from").val();
+                var $to = $("#transfer-bnb-to").val();
+                
+                $.get({
+                    url: "contents/transfer/bnbmainnet/"+$amount+"/"+$from+"/"+$to,
+                    success: function(response){
+                        alert("Funds sent",response);
+                        console.log("contents/transfer/bnbmainnet/"+$amount+"/"+$from+"/"+$to);
+                        loadTable();
+                    },
+                    error: function(err){
+                        alert("Cannot send BNB error!" + err.msg);
+                    }
+                });
+                event.preventDefault();
+            });
+
+            //transfer main eth
+            $( "#transfer-eth-form" ).submit(function( event ) {
+                var $amount = $("#transfer-eth-amount").val();
+                var $from = $("#transfer-eth-from").val();
+                var $to = $("#transfer-eth-to").val();
+                
+                $.get({
+                    url: "contents/transfer/ethmainnet/"+$amount+"/"+$from+"/"+$to,
+                    success: function(response){
+                        alert("Funds sent",response);
+                        console.log("contents/transfer/ethmainnet/"+$amount+"/"+$from+"/"+$to);
+                        loadTable();
+                    },
+                    error: function(err){
+                        alert("Cannot send Eth error!" + err.msg);
+                    }
+                });
+                event.preventDefault();
+            });
+
+            //transfer test eth
+            $( "#transfer-test-eth-form" ).submit(function( event ) {
+                var $amount = $("#transfer-test-eth-amount").val();
+                var $from = $("#transfer-test-eth-from").val();
+                var $to = $("#transfer-test-eth-to").val();
+                
+                $.get({
+                    url: "contents/transfer/ethtestnet/"+$amount+"/"+$from+"/"+$to,
+                    success: function(response){
+                        alert("Funds sent",response);
+                        console.log("contents/transfer/ethtestnet/"+$amount+"/"+$from+"/"+$to);
+                        loadTable();
+                    },
+                    error: function(err){
+                        alert("Cannot send Test Eth error!" + err.msg);
+                    }
+                });
+                event.preventDefault();
+            });
+
+            $("#content-form").submit(function(event){
+                var $content_name = $("#content-name").val();
+                $.get({
+                    url: "contents/create/"+$content_name,
+                    success: function(response){
+                        alert("Created content Successfully!");
+                        loadTable();
+                    },
+                    error: function(err){
+                        alert("Cannot create content!", err);
+                    }
+                });
+                event.preventDefault();
+            });
+
+
+        });
+    </script>
+    <h1>Content Details:</h1>
+    <table style="border: 1px;">
+        <thead>
+            <th>id</th>
+            <th>name</th>
+            <th>public key</th>
+            <th>Test BNB </th>
+            <th>BNB</th>
+            <th>Eth</th>
+            <th>Test Eth</th>
+        </thead>
+        <tbody id="table-body-id">
+            <tr> 
+            </tr>
+            
+        </tbody>
+    </table>
+    <br>
+    <div>
+        <form id="transfer-form">
+            <h4>Transfer Test BNB Amount:</h4>
+            Send amount: 
+            <input id="transfer-amount" type="text" name="amount" placeholder="amount"/>
+            from: 
+            <input id="transfer-from" type=text name="id" placeholder="content id"/>
+            To:
+            <input id="transfer-to" type=text name="address" placeholder="reciever address"/>
+            <input type="submit"/>
+        </form>
+    </div>
+    <div>
+        <form id="transfer-eth-form">
+            <h4>Transfer Eth Amount:</h4>
+            Send amount: 
+            <input id="transfer-eth-amount" type="text" name="amount" placeholder="amount"/>
+            from: 
+            <input id="transfer-eth-from" type=text name="id" placeholder="content id"/>
+            To:
+            <input id="transfer-eth-to" type=text name="address" placeholder="reciever address"/>
+            <input type="submit"/>
+        </form>
+    </div>
+    <div>
+        <form id="transfer-test-eth-form">
+            <h4>Transfer Test Eth Amount:</h4>
+            Send amount: 
+            <input id="transfer-test-eth-amount" type="text" name="amount" placeholder="amount"/>
+            from: 
+            <input id="transfer-test-eth-from" type=text name="id" placeholder="content id"/>
+            To:
+            <input id="transfer-test-eth-to" type=text name="address" placeholder="reciever address"/>
+            <input type="submit"/>
+        </form>
+    </div>
+    <div>
+        <form id="transfer-bnb-form">
+            <h4>Transfer BNB Amount:</h4>
+            Send amount: 
+            <input id="transfer-bnb-amount" type="text" name="amount" placeholder="amount"/>
+            from: 
+            <input id="transfer-bnb-from" type=text name="id" placeholder="content id"/>
+            To:
+            <input id="transfer-bnb-to" type=text name="address" placeholder="reciever address"/>
+            <input type="submit"/>
+        </form>
+    </div>
+    <div>
+        <h2>Create Content:</h2>
+        <form id="content-form">
+            Content Name:
+            <input type="text" id="content-name" placeholder="content name"/>
+            <input type="submit" value="Create"/>
+        </form>
+    </div>
+</body>
+</html>
